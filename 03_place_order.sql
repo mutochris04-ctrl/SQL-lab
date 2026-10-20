@@ -35,3 +35,25 @@ WHERE product_id = 3;   -- Nexium: 15 -> 14
 
 -- Check the result
 SELECT product_id, product_name, stock_quantity FROM products;
+-- Part 4: write each stock change in the history (inventory_logs)
+-- negative number = stock went DOWN because of an order
+INSERT INTO inventory_logs (product_id, quantity_change, change_type)
+VALUES
+    (1, -2, 'ORDER'),   -- Sekalgic: 2 sold to Justine
+    (3, -1, 'ORDER');   -- Nexium: 1 sold to Justine
+
+-- Check the result
+SELECT * FROM inventory_logs;
+
+-- Part 5: calculate the total amount of order 1
+-- SUM(quantity * unit_price) adds up the price of every line in the order
+UPDATE orders
+SET total_amount = (
+    SELECT SUM(quantity * unit_price)
+    FROM order_details
+    WHERE order_id = 1
+)
+WHERE order_id = 1;
+
+-- Check the result: total_amount should be 10000.00
+SELECT * FROM orders;
