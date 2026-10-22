@@ -47,25 +47,6 @@ CREATE TABLE IF NOT EXISTS customers (
     phone          VARCHAR(20)
 );
 
--- ============================================
--- Table 2: customers
--- Purpose: stores the people who buy from the shop
--- ============================================
-
-CREATE TABLE IF NOT EXISTS customers (
-    -- Unique ID for each customer; MySQL fills it in (1, 2, 3...)
-    customer_id    INT AUTO_INCREMENT PRIMARY KEY,
-
-    -- Customer's full name is required
-    customer_name  VARCHAR(100) NOT NULL,
-
-    -- Email is required and UNIQUE: two customers cannot share the same email
-    email          VARCHAR(100) NOT NULL UNIQUE,
-
-    -- Phone is text (not a number) because it can start with 0 or have a + sign
-    phone          VARCHAR(20)
-);
-
 DESCRIBE customers;
 
 -- ============================================
