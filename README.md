@@ -24,7 +24,7 @@ SQL-lab/
 ├── 08_views.sql                Phase 5: 3 views
 ├── 09_indexes.sql              Phase 5: indexes for speed
 ├── 10_tests.sql                Tests: stock check, bulk discount, full history
-├── 11_improvement_tests.sql    Review fixes: CHECK on reorder_level, tests of invalid orders
+├── 11_improvement_tests.sql    Improvements: CHECK on reorder_level, tests of invalid orders
 └── README.md
 ```
 
@@ -68,7 +68,7 @@ Two **stored procedures** place orders:
 
 Calling `add_product_to_order` several times adds several products to the same order.
 
-**Improvements after review:**
+**Improvements:**
 - **Quantity check:** 0 or negative quantities are refused before anything changes (a negative order can never increase stock).
 - **Missing product:** a `CONTINUE HANDLER FOR NOT FOUND` sets the stock to NULL, so the procedure answers `Product not found`.
 - **Safety net:** an `EXIT HANDLER FOR SQLEXCEPTION` does `ROLLBACK` if any unexpected error happens, so nothing half-done is saved.

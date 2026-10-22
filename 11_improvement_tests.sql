@@ -1,5 +1,5 @@
 -- ============================================
--- IMPROVEMENTS after review + their tests
+-- IMPROVEMENTS + their tests
 -- 1. New rule: reorder_level can never be negative
 -- 2. Tests: invalid orders are refused and change NOTHING
 -- Run this file ONLY ONCE (the rule can only be added once).
