@@ -24,12 +24,13 @@ SQL-lab/
 ├── 08_views.sql                Phase 5: 3 views
 ├── 09_indexes.sql              Phase 5: indexes for speed
 ├── 10_tests.sql                Tests: stock check, bulk discount, full history
+├── 11_improvement_tests.sql    Review fixes: CHECK on reorder_level, tests of invalid orders
 └── README.md
 ```
 
 **How to run:** create the database once (`CREATE DATABASE inventory_db;`), then run the files
 in order, 01 to 09, in MySQL Workbench.
-Files 02, 03, 09 and 10 should be run **only once** (running them again adds duplicates or errors).
+Files 02, 03, 09, 10 and 11 should be run **only once** (running them again adds duplicates or errors).
 
 ---
 
@@ -67,6 +68,12 @@ Two **stored procedures** place orders:
 
 Calling `add_product_to_order` several times adds several products to the same order.
 
+**Improvements after review:**
+- **Quantity check:** 0 or negative quantities are refused before anything changes (a negative order can never increase stock).
+- **Missing product:** a `CONTINUE HANDLER FOR NOT FOUND` sets the stock to NULL, so the procedure answers `Product not found`.
+- **Safety net:** an `EXIT HANDLER FOR SQLEXCEPTION` does `ROLLBACK` if any unexpected error happens, so nothing half-done is saved.
+- **Safe for two customers at once:** the transaction starts *before* reading the stock, and `SELECT ... FOR UPDATE` locks the product row until `COMMIT`, so two orders cannot sell the same last items.
+
 ```sql
 CALL create_order(1);                  -- e.g. returns new_order_id = 4
 CALL add_product_to_order(4, 4, 3);    -- 3 x Unibrol
@@ -86,6 +93,8 @@ CALL add_product_to_order(4, 4, 3);    -- 3 x Unibrol
 **Customer tiers (RWF):** Gold = 10,000 or more · Silver = 5,000 to 9,999 · Bronze = less than 5,000
 
 **Bulk discount rule:** 10 items or more = 10% · 5 to 9 items = 5% · less than 5 = no discount
+
+**Design decision:** `orders.total_amount` stores the amount **before** discount (the subtotal). Report 4 shows the discount and the amount to pay. Customer tiers are based on the subtotal.
 
 ---
 
@@ -126,6 +135,8 @@ columns my queries use in `WHERE` or `ORDER BY`:
 
 `EXPLAIN` confirms MySQL uses the index:
 `Index lookup on inventory_logs using idx_logs_change_type`
+
+With only 8 products the time difference is too small to measure; the benefit grows as the tables grow (in the lecture demo, adding indexes made queries about 6× faster).
 
 ---
 
