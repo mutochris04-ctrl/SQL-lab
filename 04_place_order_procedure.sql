@@ -43,49 +43,74 @@ BEGIN
     DECLARE v_stock INT;
     DECLARE v_price DECIMAL(10,2);
 
-    -- 1. Read the product's current stock and price from the products table
-    SELECT stock_quantity, price
-    INTO v_stock, v_price
-    FROM products
-    WHERE product_id = p_product_id;
+    -- If the product is not found, remember "nothing" (NULL) and keep going
+    DECLARE CONTINUE HANDLER FOR NOT FOUND
+        SET v_stock = NULL;
 
-    -- 2. Check before changing anything (like if / elif / else in Python)
-    IF v_stock IS NULL THEN
-        SELECT 'Product not found' AS message;
+    -- Safety net: if ANY error happens (for example the order does not exist),
+    -- cancel all the changes and show a message
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SELECT 'Something went wrong, nothing was saved' AS message;
+    END;
 
-    ELSEIF v_stock < p_quantity THEN
-        SELECT 'Not enough stock' AS message;
+    -- 1. Check the quantity first: 0 or negative is never allowed
+    IF p_quantity IS NULL OR p_quantity <= 0 THEN
+        SELECT 'Quantity must be at least 1' AS message;
 
     ELSE
-        -- 3. Do all the changes together: all succeed, or none are saved
+        -- 2. Start the transaction BEFORE reading the stock
         START TRANSACTION;
 
-        -- Add the product to the order, with the price from the products table
-        INSERT INTO order_details (order_id, product_id, quantity, unit_price)
-        VALUES (p_order_id, p_product_id, p_quantity, v_price);
+        -- 3. Read the stock and price, and LOCK this product row (FOR UPDATE)
+        --    so another order cannot buy the same stock at the same time
+        SELECT stock_quantity, price
+        INTO v_stock, v_price
+        FROM products
+        WHERE product_id = p_product_id
+        FOR UPDATE;
 
-        -- Reduce the stock
-        UPDATE products
-        SET stock_quantity = stock_quantity - p_quantity
-        WHERE product_id = p_product_id;
+        -- 4. Check before changing anything (like if / elif / else in Python)
+        IF v_stock IS NULL THEN
+            ROLLBACK;   -- nothing changed, just release the lock
+            SELECT 'Product not found' AS message;
 
-        -- Write the change in the history (negative = stock went down)
-        INSERT INTO inventory_logs (product_id, quantity_change, change_type)
-        VALUES (p_product_id, -p_quantity, 'ORDER');
+        ELSEIF v_stock < p_quantity THEN
+            ROLLBACK;   -- nothing changed, just release the lock
+            SELECT 'Not enough stock' AS message;
 
-        -- Recalculate the order total from all its lines
-        UPDATE orders
-        SET total_amount = (
-            SELECT SUM(quantity * unit_price)
-            FROM order_details
-            WHERE order_id = p_order_id
-        )
-        WHERE order_id = p_order_id;
+        ELSE
+            -- 5. Do all the changes together: all succeed, or none are saved
 
-        -- Save all the changes
-        COMMIT;
+            -- Add the product to the order, with the price from the products table
+            INSERT INTO order_details (order_id, product_id, quantity, unit_price)
+            VALUES (p_order_id, p_product_id, p_quantity, v_price);
 
-        SELECT 'Product added to order' AS message;
+            -- Reduce the stock
+            UPDATE products
+            SET stock_quantity = stock_quantity - p_quantity
+            WHERE product_id = p_product_id;
+
+            -- Write the change in the history (negative = stock went down)
+            INSERT INTO inventory_logs (product_id, quantity_change, change_type)
+            VALUES (p_product_id, -p_quantity, 'ORDER');
+
+            -- Recalculate the order total from all its lines
+            -- (total_amount = the amount BEFORE any bulk discount; see Report 4)
+            UPDATE orders
+            SET total_amount = (
+                SELECT SUM(quantity * unit_price)
+                FROM order_details
+                WHERE order_id = p_order_id
+            )
+            WHERE order_id = p_order_id;
+
+            -- Save all the changes (this also releases the lock)
+            COMMIT;
+
+            SELECT 'Product added to order' AS message;
+        END IF;
     END IF;
 END$$
 
