@@ -149,6 +149,10 @@ With only 8 products the time difference is too small to measure; the benefit gr
 | Molo orders 10 Sekalgic | Total 20,000, 10% bulk discount, 18,000 to pay; Molo becomes Gold |
 | Full inventory history | Every ORDER (negative) and REPLENISHMENT (positive) change, oldest first |
 
+### Scratch testing (`scratch_testing.sql`)
+
+Quick queries I used while working to check my results by hand: David's order total (3 x 2,500 = 7,500), Unibrol and Sekrol stock after the order, and the inventory history.
+
 ---
 
 ## Author
