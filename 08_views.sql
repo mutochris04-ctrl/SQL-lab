@@ -49,8 +49,8 @@ SELECT
     customers.customer_name,
     IFNULL(SUM(orders.total_amount), 0) AS total_spent,
     CASE
-        WHEN IFNULL(SUM(orders.total_amount), 0) >= 10000 THEN 'Gold'
-        WHEN IFNULL(SUM(orders.total_amount), 0) >= 5000  THEN 'Silver'
+        WHEN IFNULL(SUM(orders.total_amount), 0) >= 2000 THEN 'Gold'
+        WHEN IFNULL(SUM(orders.total_amount), 0) >= 500  THEN 'Silver'
         ELSE 'Bronze'
     END AS customer_tier
 FROM customers

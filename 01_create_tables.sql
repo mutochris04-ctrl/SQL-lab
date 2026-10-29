@@ -3,7 +3,7 @@
 -- Table 1: products
 -- Purpose: stores every product the shop sells
 -- ============================================
-
+CREATE DATABASE IF NOT EXISTS inventory_db;
 -- Work inside my lab database
 USE inventory_db;
 
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS orders (
     -- Unique ID for each order; MySQL fills it in (1, 2, 3...)
     order_id      INT AUTO_INCREMENT PRIMARY KEY,
 
-    -- Which customer placed the order (must be a real customer_id)
+    -- Which customer placed the order (must be a real customer_id
     customer_id   INT NOT NULL,
 
     -- Date and time of the order; MySQL puts the current time automatically

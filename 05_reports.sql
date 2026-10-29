@@ -47,9 +47,9 @@ ORDER BY stock_quantity ASC;
 -- ============================================
 -- Report 3: Customer tiers
 -- Question: how much has each customer spent, and which tier are they in?
--- Tiers (in RWF):  Gold   = 10000 or more
---                  Silver = 5000 to 9999
---                  Bronze = less than 5000 (or no orders yet)
+-- Tiers (in RWF):  Gold   = 2000 or more
+--                  Silver = 500 to 1999
+--                  Bronze = less than 500 (or no orders yet)
 -- ============================================
 
 SELECT
@@ -59,8 +59,8 @@ SELECT
     IFNULL(SUM(orders.total_amount), 0) AS total_spent,
     -- CASE works like if / elif / else in Python
     CASE
-        WHEN IFNULL(SUM(orders.total_amount), 0) >= 10000 THEN 'Gold'
-        WHEN IFNULL(SUM(orders.total_amount), 0) >= 5000  THEN 'Silver'
+        WHEN IFNULL(SUM(orders.total_amount), 0) >= 2000 THEN 'Gold'
+        WHEN IFNULL(SUM(orders.total_amount), 0) >= 500  THEN 'Silver'
         ELSE 'Bronze'
     END AS customer_tier
 FROM customers

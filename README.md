@@ -25,12 +25,14 @@ SQL-lab/
 ├── 09_indexes.sql              Phase 5: indexes for speed
 ├── 10_tests.sql                Tests: stock check, bulk discount, full history
 ├── 11_improvement_tests.sql    Improvements: CHECK on reorder_level, tests of invalid orders
+├── 12_triggers.sql             Teacher feedback: triggers, total_spent, tiers, restock, Gold buyers
+├── 13_trigger_tests.sql        Tests of the triggers
 └── README.md
 ```
 
 **How to run:** create the database once (`CREATE DATABASE inventory_db;`), then run the files
-in order, 01 to 09, in MySQL Workbench.
-Files 02, 03, 09, 10 and 11 should be run **only once** (running them again adds duplicates or errors).
+in order, 01 to 13, in MySQL Workbench.
+Files 02, 03, 09, 10, 11, 12 and 13 should be run **only once** (running them again adds duplicates or errors).
 
 ---
 
@@ -90,7 +92,7 @@ CALL add_product_to_order(4, 4, 3);    -- 3 x Unibrol
 | 3. Customer tiers | How much has each customer spent? Gold, Silver or Bronze? |
 | 4. Bulk discounts | Which orders get a discount for large quantities? |
 
-**Customer tiers (RWF):** Gold = 10,000 or more · Silver = 5,000 to 9,999 · Bronze = less than 5,000
+**Customer tiers (RWF):** Gold = 2,000 or more · Silver = 500 to 1,999 · Bronze = less than 500
 
 **Bulk discount rule:** 10 items or more = 10% · 5 to 9 items = 5% · less than 5 = no discount
 
@@ -152,6 +154,50 @@ With only 8 products the time difference is too small to measure; the benefit gr
 ### Scratch testing (`scratch_testing.sql`)
 
 Quick queries I used while working to check my results by hand: David's order total (3 x 2,500 = 7,500), Unibrol and Sekrol stock after the order, and the inventory history.
+
+---
+
+## Teacher Feedback Improvements (`12_triggers.sql`)
+
+**Triggers** (SQL that MySQL runs by itself when data changes):
+
+| Trigger | When | What it does |
+|---|---|---|
+| `check_stock_before_order_line` | before a line is added to `order_details` | stops the insert with `Not enough stock` if the stock is too small |
+| `update_after_order_line` | after a line is added to `order_details` | reduces the stock, writes an `ORDER` log, adds the line to `orders.total_amount` |
+| `update_customer_after_order` | after an order total changes | updates the customer's `total_spent` and `customer_tier` |
+
+So stock, history, order totals and customer tiers stay correct **even when an order is typed by hand**.
+`add_product_to_order` now only checks and inserts the line; the triggers do the rest
+(otherwise the stock would go down twice).
+
+**Business logic:** `customers` has two new columns, `total_spent` and `customer_tier`, kept up to date by the trigger.
+
+**Replenishment:**
+- `replenish_low_stock()` (file 06): refills **all** low products to 2 × reorder level
+- `restock_product(product_id, quantity)` (new): a delivery of **one** product arrives, e.g. `CALL restock_product(5, 30);` adds 30 and writes a `REPLENISHMENT` log
+
+**Gold customers who purchased:** `gold_customers_view` lists customers with at least one order **and** tier Gold.
+
+**Indexes, and the query each one helps:**
+
+| Index | Query it helps |
+|---|---|
+| `idx_orders_order_date` | order reports sorted by date |
+| `idx_logs_change_type` | history filtered by `ORDER` / `REPLENISHMENT` |
+| `idx_products_category` | searching products by category |
+| `idx_customers_tier` (new) | `WHERE customer_tier = 'Gold'` (EXPLAIN shows it is used) |
+
+**Trigger tests (`13_trigger_tests.sql`):**
+
+| Test | Result |
+|---|---|
+| Prince buys 1 Omeprazole, typed by hand | stock 25 → 24, `ORDER` log −1, total 1,500, Prince becomes Silver |
+| Vedaste buys 2 Paidoterin with the procedures | stock 18 → 16 (only once), total 4,000, Vedaste becomes Gold |
+| 30 Amoxicillin delivered | stock 20 → 50, `REPLENISHMENT` log +30 |
+| Restock 0 / product 99 | `Quantity must be at least 1` / `Product not found` |
+| Gold customers who purchased | Molo, Justine, Vedaste (not Prince) |
+| 1,000 Omnibionta typed by hand | `Error 1644: Not enough stock`, nothing saved |
 
 ---
 

@@ -12,7 +12,9 @@ FROM products
 WHERE stock_quantity < reorder_level;
 
 -- Refill them (procedure from 06_replenishment.sql)
+SET SQL_SAFE_UPDATES = 0;
 CALL replenish_low_stock();
+SET SQL_SAFE_UPDATES = 1;
 
 -- AFTER: the same products now have 2 x reorder_level
 SELECT product_id, product_name, stock_quantity, reorder_level
